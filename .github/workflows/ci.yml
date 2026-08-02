@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  app:
+    name: Lint, typecheck, unit tests, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build
+      - run: pnpm audit --audit-level=high
+
+  database:
+    name: Migrations + RLS/exclusion pgTAP suite (blocking)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PostgreSQL 16 + pgTAP
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql postgresql-contrib postgresql-16-pgtap pgtap
+      - name: Rebuild the database from migrations, seed, and run pgTAP
+        run: |
+          sudo pg_ctlcluster 16 main start
+          sleep 2
+          chmod +x scripts/reset_local_test_db.sh
+          ./scripts/reset_local_test_db.sh
