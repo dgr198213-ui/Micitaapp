@@ -125,7 +125,7 @@ sesión que escribió el parche como de forma independiente en esta sesión
 | ID | Hallazgo | Severidad | Corrección |
 |---|---|---|---|
 | V-01 | Un negocio podía insertar una cita referenciando el `staff`/`service`/`customer` de **otro** negocio (las FK no estaban acotadas por `business_id`), rompiendo la agenda de la víctima | Crítica | Claves foráneas compuestas `(business_id, id)` — el estado incoherente ya no es representable |
-| V-02 | La política RLS de `memberships` acotaba qué negocio administra el owner, pero no qué rol puede escribir: un owner podía auto-promocionarse a `platform_admin` | Crítica | Política de escritura reescrita: un owner no puede crear ni modificar filas con rol `platform_admin` (verificado: `DELETE 0`, `UPDATE 0`). La fila sigue siendo **legible** por los miembros del negocio a través de `memberships_business_read` — política de `SELECT` independiente que no filtra por rol y se combina por OR con la de escritura — así que un owner puede ver que existe un `platform_admin` en su negocio (expone solo `user_id` y rol). El aislamiento de lectura llega con el bloque 5.1 (tabla propia para `platform_admin`) |
+| V-02 | La política RLS de `memberships` acotaba qué negocio administra el owner, pero no qué rol puede escribir: un owner podía auto-promocionarse a `platform_admin`. Además, la fila seguía siendo legible por cualquier miembro del negocio vía `memberships_business_read` (política de `SELECT` independiente sin filtro de rol) | Crítica | **Parche (0011):** política de escritura reescrita — un owner no puede crear ni modificar filas con rol `platform_admin` (verificado: `DELETE 0`, `UPDATE 0`). **Estructural (0013, bloque 5.1):** tabla `platform_admins` propia, RLS activo y **cero políticas** para `authenticated` — el acceso directo falla en la capa de permisos (`42501`) antes de que RLS ni siquiera evalúe, más fuerte que un filtrado RLS a vacío. Solo `auth_is_platform_admin()` (SECURITY DEFINER) puede leerla. `memberships.role` conserva el valor `platform_admin` en su `CHECK` por ahora — retirarlo es una migración de contracción posterior, deliberadamente fuera de este parche |
 | V-03 | `claim_notification_jobs` solo incrementaba `attempts`; el `FOR UPDATE SKIP LOCKED` se liberaba al terminar la transacción de reclamo, así que dos invocaciones de cron solapadas podían reenviar el mismo email | Crítica | Estado `processing` con `claimed_at` (arrendamiento de 5 min, recuperable si el worker muere) |
 | V-04 | La comparación de horario laboral usaba aritmética de `time`, que es modular (23:50 + 35 min = 00:25): una reserva a las 23:50 se aceptaba en un negocio que cierra a las 20:00 | Alta | Comparación reescrita en espacio de `timestamp` local, sin envoltura modular |
 | V-07 | El token de gestión en claro se guardaba también en `idempotency_keys.response_body`, quedando persistido indefinidamente | Alta | Ya no se cachea; una repetición idempotente devuelve `manageUrl: null` (el cliente ya lo tiene por email) + purga diaria |
@@ -139,13 +139,13 @@ sesión que escribió el parche como de forma independiente en esta sesión
 **Pendiente de decisión tuya, señalado explícitamente en el informe de remediación** (no
 aplicado aquí para no ampliar el alcance del parche):
 
-1. **Separar `platform_admin` a su propia tabla** sin permiso de escritura para
-   `authenticated` — la política de V-02 tapa el agujero, pero una tabla propia evita que
-   vuelva a abrirse en un refactor futuro. ~30 min de trabajo, recomendado antes del piloto.
-2. **Observabilidad (Sentry + alerta de cola envejecida)** — sin esto, el fallo ruidoso de
+1. **Observabilidad (Sentry + alerta de cola envejecida)** — sin esto, el fallo ruidoso de
    V-08 no sirve de nada: el job falla pero nadie lo ve.
-3. Entorno de staging, inmutabilidad de `appointment_events`, CSP con `nonce`, escapado en
+2. Entorno de staging, inmutabilidad de `appointment_events`, CSP con `nonce`, escapado en
    emails.
+3. **Migración de contracción para V-02**: retirar `'platform_admin'` del `CHECK` de
+   `memberships.role` una vez confirmado que ningún proceso sigue escribiendo ahí (el sitio
+   correcto ahora es `platform_admins`).
 
 **T-E — concurrencia real, ya resuelto**: `pnpm test:concurrency` (`scripts/concurrency_test.mjs`)
 abre 50 conexiones **independientes** de `pg` (no un pool, que serializaría y invalidaría la
