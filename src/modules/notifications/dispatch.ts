@@ -6,7 +6,10 @@ import { cancellationEmail, confirmationEmail, reminderEmail, type AppointmentEm
 type AdminClient = SupabaseClient<Database>;
 type NotificationJob = Database["public"]["Tables"]["notification_jobs"]["Row"];
 
-async function sendEmail(to: string, subject: string, html: string): Promise<void> {
+// Exported (not just used internally) so V-08 can be regression-tested directly against a
+// mocked `fetch` instead of through the full claim/dispatch pipeline, which would need a
+// live Supabase admin client.
+export async function sendEmail(to: string, subject: string, html: string): Promise<void> {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
     // V-08: returning normally here made the caller mark the job 'sent'. In production
