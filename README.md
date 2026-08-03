@@ -144,12 +144,16 @@ aplicado aquí para no ampliar el alcance del parche):
    vuelva a abrirse en un refactor futuro. ~30 min de trabajo, recomendado antes del piloto.
 2. **Observabilidad (Sentry + alerta de cola envejecida)** — sin esto, el fallo ruidoso de
    V-08 no sirve de nada: el job falla pero nadie lo ve.
-3. **Test de concurrencia real (T-01)**: el requisito que el propio diseño llama *"el
-   requisito del producto"* — 50 peticiones simultáneas al mismo hueco — sigue probado solo
-   a nivel de restricción de exclusión (determinista, vía pgTAP), no con concurrencia real
-   de red. Necesita un script fuera de pgTAP (k6 o Node con conexiones paralelas).
-4. Entorno de staging, inmutabilidad de `appointment_events`, CSP con `nonce`, escapado en
+3. Entorno de staging, inmutabilidad de `appointment_events`, CSP con `nonce`, escapado en
    emails.
+
+**T-E — concurrencia real, ya resuelto**: `pnpm test:concurrency` (`scripts/concurrency_test.mjs`)
+abre 50 conexiones **independientes** de `pg` (no un pool, que serializaría y invalidaría la
+prueba) y las lanza a la vez contra `create_public_booking` para el mismo hueco. Resultado real
+contra Postgres: exactamente 1 éxito, 49× `SLOT_TAKEN`, 1 fila en `appointments`. Integrado en
+el job `database` de CI. Esto complementa, no sustituye, la prueba determinista de
+`03_no_overlap_constraint.sql` — esa prueba la restricción en sí; esta prueba que 50 conexiones
+reales compitiendo de verdad no rompen la garantía.
 
 **Antes de aplicar `0011` sobre un proyecto Supabase con datos reales**: las FK compuestas de
 V-01 fallarán si ya existe alguna fila incoherente. Comprobar antes con:

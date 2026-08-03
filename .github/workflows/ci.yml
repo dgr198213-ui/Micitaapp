@@ -30,6 +30,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
       - name: Install PostgreSQL 16 + pgTAP
         run: |
           sudo apt-get update
@@ -40,3 +48,5 @@ jobs:
           sleep 2
           chmod +x scripts/reset_local_test_db.sh
           ./scripts/reset_local_test_db.sh
+      - name: T-E — real concurrent-connection race on the same slot
+        run: pnpm test:concurrency
