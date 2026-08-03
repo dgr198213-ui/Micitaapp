@@ -233,6 +233,10 @@ export interface Database {
         Args: { p_appointment_id: string; p_event: string; p_metadata?: Json };
         Returns: Database["public"]["Tables"]["appointment_events"]["Row"];
       };
+      get_business_storefront: {
+        Args: { p_slug: string };
+        Returns: Json;
+      };
     };
     Enums: Record<string, never>;
   };

@@ -1,17 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import type { StorefrontService as Service, StorefrontStaff as Staff } from "@/modules/scheduling/storefront";
 
-interface Service {
-  id: string;
-  name: string;
-  duration_minutes: number;
-  price_cents: number;
-}
-interface Staff {
-  id: string;
-  display_name: string;
-}
 interface Slot {
   staffId: string;
   startsAt: string;
@@ -140,9 +131,9 @@ export function BookingWizard({
             >
               <span>
                 <span className="font-medium">{s.name}</span>
-                <span className="ml-2 text-sm text-gray-400">{s.duration_minutes} min</span>
+                <span className="ml-2 text-sm text-gray-400">{s.durationMinutes} min</span>
               </span>
-              <span className="font-medium">{(s.price_cents / 100).toFixed(2)} €</span>
+              <span className="font-medium">{(s.priceCents / 100).toFixed(2)} €</span>
             </button>
           ))}
           {services.length === 0 && <p className="text-gray-400">Este negocio no tiene servicios disponibles ahora mismo.</p>}
@@ -167,7 +158,7 @@ export function BookingWizard({
               <option value="">Cualquier profesional disponible</option>
               {staff.map((s) => (
                 <option key={s.id} value={s.id}>
-                  {s.display_name}
+                  {s.displayName}
                 </option>
               ))}
             </select>
