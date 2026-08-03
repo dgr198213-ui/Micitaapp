@@ -135,14 +135,14 @@ sesión que escribió el parche como de forma independiente en esta sesión
 | V-05, V-06, V-11, V-24 | Rate limiting fail-open en producción, errores 500 filtrando detalles internos, email del destinatario en logs, IP forjable | Media | Fail-closed en producción, lista blanca de `details` por código de error, log sin PII, cabecera `x-vercel-forwarded-for` preferida |
 | V-22 | No existía job de purga (§8.8/§11.3 lo especifican) | Baja | `purge_expired_artifacts()` + cron diario 03:30 |
 | V-14 | El cron de no-show marcaba **toda** cita confirmada +2h como `no_show` en toda la plataforma, sin registrar evento — con el tiempo, casi todo acabaría marcado no-show y el historial/KPI nacería inservible. Corregido en `0012_v14_no_show_closure.sql`, decisión de Dani (opción A de tres ofrecidas) | Alta (activo, empeoraba cada hora) | El cron ahora cierra por defecto como `completed` (`auto_complete_stale_appointments`, antes `mark_stale_confirmed_as_no_show`); `no_show` pasa a ser **siempre** una acción manual desde `/app/agenda` (`close_appointment_manually`). Toda transición masiva (esta y `expire_pending_appointments`) deja un `appointment_events` con `actor='system'` |
+| V-13 | `appointment_events` tenía `INSERT` abierto a `authenticated` con una política permisiva y cada punto de la aplicación pasaba `actor` como string declarado por el cliente — nada impedía que un cliente comprometido escribiera `actor: 'owner'` estando conectado como staff, o fabricara un evento entero. El rastro que el diseño usa como mitigación de repudio (§8.1) no probaba nada | Alta | `0014_v13_nonforgeable_audit.sql`: `INSERT` directo revocado de `authenticated`; la única vía es `log_appointment_event()` (SECURITY DEFINER), que deriva el rol real vía `auth_business_role()` y fija `actor_user_id = auth.uid()` — el actor ya no es un parámetro que el llamador controle |
 
 **Pendiente de decisión tuya, señalado explícitamente en el informe de remediación** (no
 aplicado aquí para no ampliar el alcance del parche):
 
 1. **Observabilidad (Sentry + alerta de cola envejecida)** — sin esto, el fallo ruidoso de
    V-08 no sirve de nada: el job falla pero nadie lo ve.
-2. Entorno de staging, inmutabilidad de `appointment_events`, CSP con `nonce`, escapado en
-   emails.
+2. Entorno de staging, CSP con `nonce`, escapado en emails.
 3. **Migración de contracción para V-02**: retirar `'platform_admin'` del `CHECK` de
    `memberships.role` una vez confirmado que ningún proceso sigue escribiendo ahí (el sitio
    correcto ahora es `platform_admins`).

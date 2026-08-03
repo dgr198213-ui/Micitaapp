@@ -229,6 +229,10 @@ export interface Database {
         Args: { p_appointment_id: string; p_status: "completed" | "no_show" };
         Returns: Database["public"]["Tables"]["appointments"]["Row"][];
       };
+      log_appointment_event: {
+        Args: { p_appointment_id: string; p_event: string; p_metadata?: Json };
+        Returns: Database["public"]["Tables"]["appointment_events"]["Row"];
+      };
     };
     Enums: Record<string, never>;
   };

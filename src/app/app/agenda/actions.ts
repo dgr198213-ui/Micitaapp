@@ -73,17 +73,13 @@ export async function closeAppointmentAction(appointmentId: string, status: "com
 
 export async function cancelAppointmentAction(appointmentId: string) {
   const client = await createServerSupabaseClient();
-  const business = await getCurrentBusiness(client);
 
   const { error } = await client.from("appointments").update({ status: "cancelled_by_business" }).eq("id", appointmentId);
   if (error) throw new ApiError("INTERNAL_ERROR", error);
 
-  await client.from("appointment_events").insert({
-    appointment_id: appointmentId,
-    business_id: business.businessId,
-    event: "cancelled_by_business",
-    actor: business.role,
-  });
+  // V-13: routed through log_appointment_event() so the recorded actor is the real
+  // signed-in user (auth.uid() + their actual role), never a value this code declares.
+  await client.rpc("log_appointment_event", { p_appointment_id: appointmentId, p_event: "cancelled_by_business" });
 
   await client.from("notification_jobs").update({ status: "cancelled" }).eq("appointment_id", appointmentId).eq("status", "pending");
 

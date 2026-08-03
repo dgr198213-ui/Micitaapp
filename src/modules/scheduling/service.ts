@@ -207,12 +207,13 @@ export async function createManualBooking(client: Client, input: CreateManualBoo
     throw new ApiError("INTERNAL_ERROR", apptError);
   }
 
-  await client.from("appointment_events").insert({
-    appointment_id: appointment.id,
-    business_id: input.businessId,
-    event: "created",
-    actor: input.createdBy,
-    metadata: { channel: "manual" },
+  // V-13: log_appointment_event() derives the actor from the caller's own membership
+  // (auth_business_role + auth.uid()) — createdBy above only shapes appointments.created_by,
+  // it is never trusted as the audit actor.
+  await client.rpc("log_appointment_event", {
+    p_appointment_id: appointment.id,
+    p_event: "created",
+    p_metadata: { channel: "manual" },
   });
 
   return appointment;
