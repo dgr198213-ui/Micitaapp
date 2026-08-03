@@ -74,8 +74,18 @@ export async function closeAppointmentAction(appointmentId: string, status: "com
 export async function cancelAppointmentAction(appointmentId: string) {
   const client = await createServerSupabaseClient();
 
-  const { error } = await client.from("appointments").update({ status: "cancelled_by_business" }).eq("id", appointmentId);
+  // V-21: RLS lets an owner cancel anything but restricts staff to their own appointments
+  // (appointments_staff_write_own) — without checking what the update actually matched, a
+  // staff member cancelling someone else's appointment would silently affect 0 rows while
+  // this code went on to log a cancellation event and clear notification_jobs for an
+  // appointment that was never touched.
+  const { data, error } = await client
+    .from("appointments")
+    .update({ status: "cancelled_by_business" })
+    .eq("id", appointmentId)
+    .select("id");
   if (error) throw new ApiError("INTERNAL_ERROR", error);
+  if (!data || data.length === 0) throw new ApiError("FORBIDDEN");
 
   // V-13: routed through log_appointment_event() so the recorded actor is the real
   // signed-in user (auth.uid() + their actual role), never a value this code declares.

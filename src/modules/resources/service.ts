@@ -21,9 +21,12 @@ export async function createStaff(client: Client, businessId: string, displayNam
   return data;
 }
 
+// V-21: check what the update actually matched — RLS blocking a cross-business id would
+// otherwise report success while changing nothing.
 export async function setStaffActive(client: Client, staffId: string, active: boolean): Promise<void> {
-  const { error } = await client.from("staff").update({ active }).eq("id", staffId);
+  const { data, error } = await client.from("staff").update({ active }).eq("id", staffId).select("id");
   if (error) throw new ApiError("INTERNAL_ERROR", error);
+  if (!data || data.length === 0) throw new ApiError("FORBIDDEN");
 }
 
 export interface WorkingHoursInput {

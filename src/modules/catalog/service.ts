@@ -55,9 +55,12 @@ export async function updateService(client: Client, serviceId: string, input: Pa
 // Deactivating (not deleting) preserves the service on past appointments (T-08): the FK from
 // appointments.service_id has no ON DELETE CASCADE, so a hard delete would fail anyway once
 // any appointment references it — deactivation is the only safe path once a service is in use.
+// V-21: check what the update actually matched — RLS blocking a cross-business id would
+// otherwise report success while changing nothing.
 export async function setServiceActive(client: Client, serviceId: string, active: boolean): Promise<void> {
-  const { error } = await client.from("services").update({ active }).eq("id", serviceId);
+  const { data, error } = await client.from("services").update({ active }).eq("id", serviceId).select("id");
   if (error) throw new ApiError("INTERNAL_ERROR", error);
+  if (!data || data.length === 0) throw new ApiError("FORBIDDEN");
 }
 
 export async function listStaffServiceIds(client: Client, staffId: string): Promise<string[]> {
