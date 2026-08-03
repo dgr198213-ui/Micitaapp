@@ -221,9 +221,13 @@ export interface Database {
         Args: Record<string, never>;
         Returns: number;
       };
-      mark_stale_confirmed_as_no_show: {
+      auto_complete_stale_appointments: {
         Args: Record<string, never>;
         Returns: number;
+      };
+      close_appointment_manually: {
+        Args: { p_appointment_id: string; p_status: "completed" | "no_show" };
+        Returns: Database["public"]["Tables"]["appointments"]["Row"][];
       };
     };
     Enums: Record<string, never>;

@@ -54,6 +54,23 @@ export async function createManualBookingAction(formData: FormData) {
   return appointment;
 }
 
+// V-14: closing an appointment is always a deliberate, manual action from the panel — the
+// cron only ever auto-completes (see 0012_v14_no_show_closure.sql). Routed through the
+// close_appointment_manually() RPC rather than a direct table update so the audit trail
+// always records the real signed-in actor, not a value the client could shape.
+export async function closeAppointmentAction(appointmentId: string, status: "completed" | "no_show") {
+  const client = await createServerSupabaseClient();
+
+  const { data, error } = await client.rpc("close_appointment_manually", {
+    p_appointment_id: appointmentId,
+    p_status: status,
+  });
+  if (error) throw new ApiError(error.message === "FORBIDDEN" ? "FORBIDDEN" : "INVALID_STATE");
+  if (!data || data.length === 0) throw new ApiError("INVALID_STATE");
+
+  revalidatePath("/app/agenda");
+}
+
 export async function cancelAppointmentAction(appointmentId: string) {
   const client = await createServerSupabaseClient();
   const business = await getCurrentBusiness(client);

@@ -3,7 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
-import { cancelAppointmentAction, createManualBookingAction } from "./actions";
+import { cancelAppointmentAction, closeAppointmentAction, createManualBookingAction } from "./actions";
 
 export interface AgendaAppointment {
   id: string;
@@ -73,6 +73,15 @@ export function AgendaClient({
     if (!confirm("¿Cancelar esta cita?")) return;
     startTransition(async () => {
       await cancelAppointmentAction(id);
+      router.refresh();
+    });
+  }
+
+  function handleClose(id: string, status: "completed" | "no_show") {
+    const label = status === "completed" ? "completada" : "no-show";
+    if (!confirm(`¿Marcar esta cita como ${label}?`)) return;
+    startTransition(async () => {
+      await closeAppointmentAction(id, status);
       router.refresh();
     });
   }
@@ -150,11 +159,23 @@ export function AgendaClient({
               · {a.services?.name} · {a.staff?.display_name} · {a.customers?.name}
               <span className="ml-2 text-gray-400">{STATUS_LABEL[a.status] ?? a.status}</span>
             </div>
-            {(a.status === "pending" || a.status === "confirmed") && (
-              <button type="button" onClick={() => handleCancel(a.id)} className="text-red-600 underline">
-                Cancelar
-              </button>
-            )}
+            <div className="flex items-center gap-3">
+              {a.status === "confirmed" && (
+                <>
+                  <button type="button" onClick={() => handleClose(a.id, "completed")} className="text-green-700 underline">
+                    Completada
+                  </button>
+                  <button type="button" onClick={() => handleClose(a.id, "no_show")} className="text-amber-700 underline">
+                    No-show
+                  </button>
+                </>
+              )}
+              {(a.status === "pending" || a.status === "confirmed") && (
+                <button type="button" onClick={() => handleCancel(a.id)} className="text-red-600 underline">
+                  Cancelar
+                </button>
+              )}
+            </div>
           </li>
         ))}
         {initialAppointments.length === 0 && <li className="px-4 py-6 text-center text-gray-400">Sin citas este día.</li>}

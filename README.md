@@ -134,6 +134,7 @@ sesión que escribió el parche como de forma independiente en esta sesión
 | V-10 | Ventana de disponibilidad sin límite razonable (370 días) en un endpoint público sin autenticar — vector de agotamiento de CPU | Alta | Tope de 62 días en SQL + 31 días en el esquema Zod de la ruta |
 | V-05, V-06, V-11, V-24 | Rate limiting fail-open en producción, errores 500 filtrando detalles internos, email del destinatario en logs, IP forjable | Media | Fail-closed en producción, lista blanca de `details` por código de error, log sin PII, cabecera `x-vercel-forwarded-for` preferida |
 | V-22 | No existía job de purga (§8.8/§11.3 lo especifican) | Baja | `purge_expired_artifacts()` + cron diario 03:30 |
+| V-14 | El cron de no-show marcaba **toda** cita confirmada +2h como `no_show` en toda la plataforma, sin registrar evento — con el tiempo, casi todo acabaría marcado no-show y el historial/KPI nacería inservible. Corregido en `0012_v14_no_show_closure.sql`, decisión de Dani (opción A de tres ofrecidas) | Alta (activo, empeoraba cada hora) | El cron ahora cierra por defecto como `completed` (`auto_complete_stale_appointments`, antes `mark_stale_confirmed_as_no_show`); `no_show` pasa a ser **siempre** una acción manual desde `/app/agenda` (`close_appointment_manually`). Toda transición masiva (esta y `expire_pending_appointments`) deja un `appointment_events` con `actor='system'` |
 
 **Pendiente de decisión tuya, señalado explícitamente en el informe de remediación** (no
 aplicado aquí para no ampliar el alcance del parche):
@@ -147,8 +148,8 @@ aplicado aquí para no ampliar el alcance del parche):
    requisito del producto"* — 50 peticiones simultáneas al mismo hueco — sigue probado solo
    a nivel de restricción de exclusión (determinista, vía pgTAP), no con concurrencia real
    de red. Necesita un script fuera de pgTAP (k6 o Node con conexiones paralelas).
-4. Entorno de staging, cierre real de citas (`completed`) antes de que el cron las marque
-   `no_show`, inmutabilidad de `appointment_events`, CSP con `nonce`, escapado en emails.
+4. Entorno de staging, inmutabilidad de `appointment_events`, CSP con `nonce`, escapado en
+   emails.
 
 **Antes de aplicar `0011` sobre un proyecto Supabase con datos reales**: las FK compuestas de
 V-01 fallarán si ya existe alguna fila incoherente. Comprobar antes con:
