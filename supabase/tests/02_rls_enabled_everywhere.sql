@@ -1,21 +1,20 @@
--- ADR-003 condition #2: every business table has RLS active. This is the generic,
--- table-agnostic guardrail that must stay green even as new tables are added.
+-- ADR-003 condition #2: every business table has RLS active. Inverted on purpose after
+-- audit finding V-15: the previous version asserted over a hardcoded list of 13 tables,
+-- so any table added later silently passed. This version fails for ANY table in `public`
+-- without RLS unless it is explicitly listed as exempt below.
 begin;
 select plan(1);
 
-select ok(
-  (
-    select bool_and(c.relrowsecurity)
+select is_empty(
+  $$select c.relname
     from pg_class c
     join pg_namespace n on n.oid = c.relnamespace
     where n.nspname = 'public'
-      and c.relname in (
-        'businesses', 'business_hours', 'memberships', 'staff', 'services', 'staff_services',
-        'working_hours', 'time_off', 'customers', 'appointments', 'appointment_events',
-        'notification_jobs', 'idempotency_keys'
-      )
-  ),
-  'RLS is enabled on every business table'
+      and c.relkind = 'r'
+      and not c.relrowsecurity
+      -- Exemptions must be justified here, one line each. Empty today.
+      and c.relname not in ('__no_exemptions__')$$,
+  'no table in schema public is missing RLS'
 );
 
 select * from finish();

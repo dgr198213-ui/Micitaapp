@@ -28,7 +28,8 @@ export interface BookingResult {
   status: string;
   startsAt: string;
   endsAt: string;
-  manageToken: string;
+  /** Null on an idempotent replay: the plaintext token is never cached at rest (V-07). */
+  manageToken: string | null;
   priceCents: number;
 }
 

@@ -70,7 +70,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         status: booking.status,
         startsAt: booking.startsAt,
         endsAt: booking.endsAt,
-        manageUrl: `/r/${booking.manageToken}`,
+        // Null when this was an idempotent replay — the token is not stored anywhere
+        // recoverable, so the customer uses the link in their confirmation email (V-07).
+        manageUrl: booking.manageToken ? `/r/${booking.manageToken}` : null,
       },
       { status: 201 }
     );

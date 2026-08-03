@@ -114,7 +114,7 @@ export interface Database {
         Row: {
           id: string; business_id: string; appointment_id: string | null; channel: string; template: string;
           payload: Json; scheduled_for: string; status: string; attempts: number; last_error: string | null;
-          idempotency_key: string; sent_at: string | null; created_at: string;
+          idempotency_key: string; sent_at: string | null; claimed_at: string | null; created_at: string;
         };
         Insert: Partial<Database["public"]["Tables"]["notification_jobs"]["Row"]> & {
           business_id: string; channel: string; template: string; payload: Json; scheduled_for: string; idempotency_key: string;
@@ -170,7 +170,7 @@ export interface Database {
         };
         Returns: {
           appointment_id: string; status: string; starts_at: string; ends_at: string;
-          manage_token: string; price_cents: number;
+          manage_token: string | null; price_cents: number;
         }[];
       };
       get_appointment_by_token: {
@@ -212,6 +212,10 @@ export interface Database {
       auth_is_platform_admin: {
         Args: Record<string, never>;
         Returns: boolean;
+      };
+      purge_expired_artifacts: {
+        Args: Record<string, never>;
+        Returns: Json;
       };
       expire_pending_appointments: {
         Args: Record<string, never>;

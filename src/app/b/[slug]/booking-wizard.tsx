@@ -49,7 +49,7 @@ export function BookingWizard({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [alternatives, setAlternatives] = useState<Slot[]>([]);
-  const [confirmation, setConfirmation] = useState<{ manageUrl: string; startsAt: string } | null>(null);
+  const [confirmation, setConfirmation] = useState<{ manageUrl: string | null; startsAt: string } | null>(null);
   // One key per visit to the contact step (§7.4): stable across a double-click or a
   // network retry of the same submission, but fresh if the user goes back and picks a
   // different slot — that's a genuinely different booking attempt.
@@ -110,7 +110,7 @@ export function BookingWizard({
         setAlternatives(body.details?.alternatives ?? []);
         return;
       }
-      setConfirmation({ manageUrl: body.manageUrl, startsAt: body.startsAt });
+      setConfirmation({ manageUrl: body.manageUrl ?? null, startsAt: body.startsAt });
       setStep("done");
     } catch {
       setError("No se pudo conectar. Inténtalo de nuevo.");
@@ -278,9 +278,15 @@ export function BookingWizard({
           <p className="mt-1 text-sm text-green-700">
             {new Date(confirmation.startsAt).toLocaleString("es-ES", { dateStyle: "full", timeStyle: "short", timeZone: timezone })} (hora del local)
           </p>
-          <a href={confirmation.manageUrl} className="mt-3 inline-block text-sm text-green-800 underline">
-            Gestionar mi cita (cancelar o reprogramar)
-          </a>
+          {confirmation.manageUrl ? (
+            <a href={confirmation.manageUrl} className="mt-3 inline-block text-sm text-green-800 underline">
+              Gestionar mi cita (cancelar o reprogramar)
+            </a>
+          ) : (
+            <p className="mt-3 text-sm text-green-800">
+              Te hemos enviado un email con el enlace para gestionar tu cita.
+            </p>
+          )}
         </div>
       )}
     </div>

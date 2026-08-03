@@ -9,7 +9,14 @@ type NotificationJob = Database["public"]["Tables"]["notification_jobs"]["Row"];
 async function sendEmail(to: string, subject: string, html: string): Promise<void> {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
-    console.log(JSON.stringify({ level: "warn", event: "email.skipped_no_api_key", to, subject }));
+    // V-08: returning normally here made the caller mark the job 'sent'. In production
+    // that means nobody receives anything while every metric stays green. Fail loudly so
+    // the job lands in 'failed' and the queue-age alert fires.
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("RESEND_API_KEY is not configured");
+    }
+    // V-11: never log the recipient address (§14.2 / RGPD) — the subject is enough.
+    console.log(JSON.stringify({ level: "warn", event: "email.skipped_no_api_key", subject }));
     return;
   }
 

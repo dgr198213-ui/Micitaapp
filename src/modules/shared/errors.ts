@@ -71,11 +71,19 @@ export function fromPostgresError(error: { message?: string } | null | undefined
   return new ApiError("INTERNAL_ERROR", error);
 }
 
+/**
+ * Only these codes may carry `details` to the client. Everything else — above all
+ * INTERNAL_ERROR, which wraps the raw Postgres error object — would otherwise hand the
+ * caller table names, constraint names and statement fragments (audit finding V-06).
+ * The full detail still reaches the server log, correlated by requestId.
+ */
+const CODES_WITH_PUBLIC_DETAILS = new Set<ApiErrorCode>(["VALIDATION_ERROR", "SLOT_TAKEN"]);
+
 export function errorBody(err: ApiError, requestId: string) {
   return {
     error: err.code,
     message: err.message,
     requestId,
-    details: err.details ?? {},
+    details: CODES_WITH_PUBLIC_DETAILS.has(err.code) ? err.details ?? {} : {},
   };
 }
