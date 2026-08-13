@@ -34,7 +34,7 @@ export interface Database {
         Relationships: Relationships;
       };
       memberships: {
-        Row: { id: string; business_id: string; user_id: string; role: "owner" | "staff" | "platform_admin"; staff_id: string | null; created_at: string };
+        Row: { id: string; business_id: string; user_id: string; role: "owner" | "staff"; staff_id: string | null; created_at: string };
         Insert: Partial<Database["public"]["Tables"]["memberships"]["Row"]> & { business_id: string; user_id: string; role: string };
         Update: Partial<Database["public"]["Tables"]["memberships"]["Row"]>;
         Relationships: Relationships;
