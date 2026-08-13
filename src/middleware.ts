@@ -1,18 +1,9 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { buildCsp } from "@/lib/security";
 
-const CSP = [
-  "default-src 'self'",
-  "script-src 'self' 'unsafe-inline'",
-  "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: https:",
-  "font-src 'self' data:",
-  "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
-  "frame-ancestors 'none'",
-].join("; ");
-
-function withSecurityHeaders(response: NextResponse): NextResponse {
-  response.headers.set("Content-Security-Policy", CSP);
+function withSecurityHeaders(response: NextResponse, nonce: string): NextResponse {
+  response.headers.set("Content-Security-Policy", buildCsp(nonce));
   response.headers.set("X-Frame-Options", "DENY");
   response.headers.set("X-Content-Type-Options", "nosniff");
   response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
@@ -25,7 +16,10 @@ export async function middleware(request: NextRequest) {
   // middleware always runs on the Edge), and per §8.4 the doc explicitly treats volumetric
   // abuse as the CDN/edge's job at this scale, not application code. Route handlers still
   // apply their own narrower, Upstash-backed limits (§8.4 table) — see src/lib/rate-limit.ts.
-  let response = NextResponse.next({ request });
+  const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-nonce", nonce);
+  let response = NextResponse.next({ request: { headers: requestHeaders } });
 
   // Refresh the Supabase session cookie on every request, per @supabase/ssr's documented
   // Next.js middleware pattern — without this, sessions silently expire mid-visit.
@@ -42,7 +36,7 @@ export async function middleware(request: NextRequest) {
             for (const { name, value } of cookiesToSet) {
               request.cookies.set(name, value);
             }
-            response = NextResponse.next({ request });
+            response = NextResponse.next({ request: { headers: requestHeaders } });
             for (const { name, value, options } of cookiesToSet) {
               response.cookies.set(name, value, options);
             }
@@ -54,7 +48,7 @@ export async function middleware(request: NextRequest) {
     await supabase.auth.getUser();
   }
 
-  return withSecurityHeaders(response);
+  return withSecurityHeaders(response, nonce);
 }
 
 export const config = {
