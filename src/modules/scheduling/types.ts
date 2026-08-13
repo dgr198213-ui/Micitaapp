@@ -20,6 +20,8 @@ export interface CreateBookingInput {
   customer: { name: string; email?: string | null; phone?: string | null };
   notes?: string | null;
   consent?: { terms: boolean; marketing?: boolean };
+  consentTermsVersion: string;
+  clientIp: string;
   idempotencyKey?: string | null;
 }
 

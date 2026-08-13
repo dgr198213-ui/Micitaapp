@@ -5,6 +5,7 @@ import { withApiHandler } from "@/modules/shared/api";
 import { ApiError } from "@/modules/shared/errors";
 import { checkRateLimit, clientIp } from "@/lib/rate-limit";
 import { createBooking } from "@/modules/scheduling/service";
+import { CURRENT_TERMS_VERSION } from "@/modules/shared/consent";
 
 const bodySchema = z.object({
   serviceId: z.string().uuid(),
@@ -61,6 +62,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       customer: body.customer,
       notes: body.notes,
       consent: body.consent,
+      consentTermsVersion: CURRENT_TERMS_VERSION,
+      clientIp: ip,
       idempotencyKey,
     });
 

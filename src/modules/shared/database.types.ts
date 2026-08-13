@@ -167,6 +167,8 @@ export interface Database {
           p_marketing_consent: boolean | null;
           p_idempotency_key: string | null;
           p_request_hash: string | null;
+          p_consent_terms_version: string;
+          p_client_ip: string;
         };
         Returns: {
           appointment_id: string; status: string; starts_at: string; ends_at: string;

@@ -55,6 +55,8 @@ export async function createBooking(
     p_customer_phone: input.customer.phone ?? null,
     p_notes: input.notes ?? null,
     p_marketing_consent: input.consent?.marketing ?? false,
+    p_consent_terms_version: input.consentTermsVersion,
+    p_client_ip: input.clientIp,
     p_idempotency_key: input.idempotencyKey ?? null,
     p_request_hash: requestHash,
   });
