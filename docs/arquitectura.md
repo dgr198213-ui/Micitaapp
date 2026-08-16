@@ -26,7 +26,7 @@ Los marco explícitamente porque condicionan el diseño. Cada uno lleva su impac
 | # | Supuesto | Impacto si es falso |
 |---|---|---|
 | S1 | Mercado España, un solo huso (Europe/Madrid), idioma es-ES | Multi-timezone real → cambia el modelo de disponibilidad (§4.4) |
-| S2 | Vertical belleza/bienestar (peluquería, barbería, estética, uñas) | Vertical salud → LOPDGDD datos de salud, cifrado a nivel campo, cambia §8 |
+| S2 | **[Actualizado]** Cualquier negocio con cita previa (peluquería, gimnasio, asesoría, taller, academia...), explícitamente **excluida sanidad** (médicos, psicólogos, dentistas, fisios) | Si algún día entra sanidad → LOPDGDD datos de salud, cifrado a nivel campo, cambia §8 |
 | S3 | Negocio medio: 1 local, 1–5 profesionales, ~200 citas/mes | 10× más citas cambia §12 pero no la arquitectura |
 | S4 | Los clientes finales reservan sin cuenta (guest booking + magic link) | Cuentas obligatorias → añade fricción y un dominio de identidad |
 | S5 | Sin cobro online en MVP; pago en el local | Pagos en MVP → PSD2/SCA, Stripe Connect, +2 semanas mínimo |
